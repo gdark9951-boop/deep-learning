@@ -34,7 +34,7 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 # ─── Paths ───────────────────────────────────────────────────────────────────
-BASE_DIR   = Path(__file__).parent
+BASE_DIR   = Path(__file__).resolve().parent
 MODELS_DIR = BASE_DIR / "models"
 DATA_DIR   = BASE_DIR / "data"
 TRAIN_CSV  = DATA_DIR / "sample_train.csv"
@@ -227,10 +227,12 @@ def train_models() -> None:
         os.makedirs(DATA_DIR, exist_ok=True)
         df_train = generate_training_data()
         df_train.to_csv(TRAIN_CSV, index=False)
-        log.info(f"Generated synthetic training data → {TRAIN_CSV} ({len(df_train)} rows)")
+        rel_path = TRAIN_CSV.relative_to(BASE_DIR.parent) if TRAIN_CSV.is_relative_to(BASE_DIR.parent) else TRAIN_CSV
+        log.info(f"Generated synthetic training data → {rel_path} ({len(df_train)} rows)")
     else:
         df_train = pd.read_csv(TRAIN_CSV)
-        log.info(f"Loaded training data: {TRAIN_CSV} ({len(df_train)} rows)")
+        rel_path = TRAIN_CSV.relative_to(BASE_DIR.parent) if TRAIN_CSV.is_relative_to(BASE_DIR.parent) else TRAIN_CSV
+        log.info(f"Loaded training data: {rel_path} ({len(df_train)} rows)")
 
     labels = df_train["label"].values
     X, feat_cols = extract_features(df_train)
