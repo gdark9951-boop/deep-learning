@@ -342,6 +342,10 @@ def _classify_conn(conn) -> str | None:
     return None
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
+@app.get("/")
+async def root():
+    return {"message": "Cyber IDS API is running", "docs": "/docs", "health": "/health"}
+
 @app.get("/health")
 async def health():
     return {
