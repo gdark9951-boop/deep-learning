@@ -42,7 +42,7 @@ export default function WorldMap() {
                 style={{ width: "100%", height: "100%" }}
             >
                 <Geographies geography={GEO_URL}>
-                    {({ geographies }) =>
+                    {({ geographies }: { geographies: { rsmKey: string;[key: string]: unknown }[] }) =>
                         geographies.map((geo) => (
                             <Geography
                                 key={geo.rsmKey}
