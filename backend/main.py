@@ -25,7 +25,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import psutil
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
@@ -341,10 +342,44 @@ def _classify_conn(conn) -> str | None:
         pass
     return None
 
+# ─── API Key auth ────────────────────────────────────────────────────────────
+_API_KEY = os.getenv("API_KEY", "")
+
+async def verify_api_key(x_api_key: str = Header(default="")):
+    if _API_KEY and x_api_key != _API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
 # ─── Endpoints ───────────────────────────────────────────────────────────────
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    return {"message": "Cyber IDS API is running", "docs": "/docs", "health": "/health"}
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Cyber IDS API</title>
+        <style>
+            body { font-family: sans-serif; background: #0f172a; color: #e2e8f0;
+                   display: flex; flex-direction: column; align-items: center;
+                   justify-content: center; height: 100vh; margin: 0; }
+            h1   { font-size: 2rem; color: #38bdf8; }
+            p    { color: #94a3b8; }
+            a    { color: #38bdf8; text-decoration: none; margin: 0 12px;
+                   padding: 8px 20px; border: 1px solid #38bdf8; border-radius: 6px; }
+            a:hover { background: #38bdf8; color: #0f172a; }
+            .links { margin-top: 24px; }
+        </style>
+    </head>
+    <body>
+        <h1>🛡️ Cyber IDS API</h1>
+        <p>ML-based network intrusion detection — running on Render</p>
+        <div class="links">
+            <a href="/docs">📖 API Docs</a>
+            <a href="/health">❤️ Health Check</a>
+        </div>
+    </body>
+    </html>
+    """
 
 @app.get("/health")
 async def health():
@@ -420,6 +455,7 @@ async def api_live_connections():
 async def predict(
     file:  UploadFile = File(...,  description="CSV file with network flow data"),
     model: str        = Form("hybrid", description="Model: cnn | lstm | hybrid"),
+    _auth: None       = Depends(verify_api_key),
 ):
     model = model.strip().lower()
     if model not in _registry:
