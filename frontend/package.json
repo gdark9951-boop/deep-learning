@@ -24,6 +24,7 @@
     "tailwind-merge": "^3.4.1",
     "tailwindcss": "latest",
     "tailwindcss-animate": "^1.0.7",
+    "react-simple-maps": "^3.0.0",
     "zustand": "latest"
   },
   "devDependencies": {
