@@ -1,6 +1,17 @@
-import { WidgetTotalScans, WidgetDetectedThreats, WidgetThreatLevel, WidgetAvgLatency } from '../../components/Widgets';
-import { DetectionsChart } from '../../components/DetectionsChart';
-import { NetworkMapPreview } from '../../components/NetworkMapPreview';
+"use client";
+
+import dynamic from "next/dynamic";
+import { WidgetTotalScans, WidgetDetectedThreats, WidgetThreatLevel, WidgetAvgLatency } from "../../components/Widgets";
+
+const DetectionsChart = dynamic(() =>
+  import("../../components/DetectionsChart").then((m) => ({ default: m.DetectionsChart })),
+  { ssr: false, loading: () => <div className="glass p-4 h-[200px] animate-pulse" /> }
+);
+
+const NetworkMapPreview = dynamic(() =>
+  import("../../components/NetworkMapPreview").then((m) => ({ default: m.NetworkMapPreview })),
+  { ssr: false, loading: () => <div className="glass p-4 h-[300px] animate-pulse" /> }
+);
 
 export default function PresentationPage() {
   return (
