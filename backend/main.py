@@ -34,6 +34,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_predict
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
+# ─── Routers ──────────────────────────────────────────────────────────────────
+from routers import history, metrics, network, explain, prediction
+
 # ─── Paths ───────────────────────────────────────────────────────────────────
 BASE_DIR   = Path(__file__).resolve().parent
 MODELS_DIR = BASE_DIR / "models"
@@ -289,6 +292,13 @@ app.add_middleware(
     allow_methods     = ["*"],
     allow_headers     = ["*"],
 )
+
+# ─── Register Routers ────────────────────────────────────────────────────────
+app.include_router(history.router)
+app.include_router(metrics.router)
+app.include_router(network.router)
+app.include_router(explain.router)
+app.include_router(prediction.router)
 
 # ─── Schemas ─────────────────────────────────────────────────────────────────
 class FeatureImpact(BaseModel):
