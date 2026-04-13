@@ -49,7 +49,13 @@ const RISK_COLOR: Record<string, string> = {
     LOW: "#4ade80",
 };
 
-const SAMPLE_CSV =
+const DEFAULT_CSV =
+    `timestamp,src_ip,dst_ip,src_port,dst_port,protocol,packets,bytes,duration_ms,flag_syn,flag_ack,flag_fin,flag_rst,label\n` +
+    `2026-02-19 10:00:01,192.168.1.10,10.0.0.5,51234,443,TCP,8,1024,210,1,1,0,0,benign\n` +
+    `2026-02-19 10:00:02,192.168.1.18,10.0.0.5,51236,443,TCP,5,800,150,1,1,0,0,benign\n` +
+    `2026-02-19 10:00:03,192.168.1.9,10.0.0.5,51238,443,TCP,9,1500,250,1,1,0,0,benign`;
+
+const DOWNLOAD_CSV =
     `timestamp,src_ip,dst_ip,src_port,dst_port,protocol,packets,bytes,duration_ms,flag_syn,flag_ack,flag_fin,flag_rst,label\n` +
     // Normal Web Traffic
     `2026-02-19 10:00:01,192.168.1.10,10.0.0.5,51234,443,TCP,8,1024,210,1,1,0,0,benign\n` +
@@ -90,7 +96,7 @@ const SAMPLE_CSV =
     `2026-02-19 10:00:14,10.0.0.99,10.0.0.5,33005,22,TCP,21,2600,4100,1,1,0,0,bruteforce`;
 
 function downloadSample() {
-    const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
+    const blob = new Blob([DOWNLOAD_CSV], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = "sample_network.csv"; a.click();
@@ -174,7 +180,7 @@ export default function DemoPage() {
     };
 
     const analyse = async () => {
-        const csvContent = file ? await file.text() : SAMPLE_CSV;
+        const csvContent = file ? await file.text() : DEFAULT_CSV;
         await analyseCSV(csvContent);
     };
 
