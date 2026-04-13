@@ -154,6 +154,8 @@ export default function DemoPage() {
             const data: PredictResult = await res.json();
             if (demoKey) {
                 setDemoResults(prev => ({ ...prev, [demoKey]: data }));
+                setResult(data);
+                setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
             } else {
                 setResult(data);
                 setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
