@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import {
     Upload, Play, FileText, AlertTriangle, CheckCircle2,
     Cpu, Zap, Info, Download, ServerCrash,
@@ -158,6 +159,33 @@ export default function DemoPage() {
                 throw new Error(err.detail ?? `HTTP ${res.status}`);
             }
             const data: PredictResult = await res.json();
+            
+            // Trigger beautiful toast notification based on prediction
+            if (data.risk === "CRITICAL" || data.risk === "HIGH") {
+                toast.error(`تحذير رصد هجوم!`, {
+                    description: `النوع: ${data.label} (خطر ${data.risk})`,
+                    icon: "🚨",
+                    style: { background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.4)" }
+                });
+            } else if (data.risk === "MEDIUM") {
+                toast.warning(`نشاط مشبوه!`, {
+                    description: `النوع: ${data.label} (خطر ${data.risk})`,
+                    icon: "⚠️",
+                    style: { background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.4)" }
+                });
+            } else if (data.label.toLowerCase() !== "benign" && data.label.toLowerCase() !== "normal") {
+                 toast.info(`نشاط غير طبيعي مسجل`, {
+                    description: `النوع: ${data.label}`,
+                    icon: "👀"
+                });
+            } else {
+                toast.success(`تمرير آمن`, {
+                    description: `لم يتم اكتشاف أي هجوم في حركة الشبكة.`,
+                    icon: "✅",
+                    style: { background: "rgba(34, 197, 94, 0.15)", border: "1px solid rgba(34, 197, 94, 0.4)" }
+                });
+            }
+
             if (demoKey) {
                 setDemoResults(prev => ({ ...prev, [demoKey]: data }));
                 setResult(data);

@@ -23,6 +23,7 @@
     "react-force-graph-2d": "^1.29.1",
     "react-simple-maps": "^3.0.0",
     "recharts": "latest",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.1",
     "tailwindcss": "latest",
     "tailwindcss-animate": "^1.0.7",

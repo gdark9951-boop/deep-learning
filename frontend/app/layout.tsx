@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Cairo } from "next/font/google";
+import { Toaster } from "sonner";
 import "../theme/globals.css";
 
 const cairo = Cairo({
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         }}
       >
         {children}
+        <Toaster richColors position="top-right" theme="dark" expand={true} />
       </body>
     </html>
   );
