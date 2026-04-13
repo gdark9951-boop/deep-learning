@@ -20,11 +20,12 @@
     "next": "^16.1.6",
     "react": "latest",
     "react-dom": "latest",
+    "react-force-graph-2d": "^1.29.1",
+    "react-simple-maps": "^3.0.0",
     "recharts": "latest",
     "tailwind-merge": "^3.4.1",
     "tailwindcss": "latest",
     "tailwindcss-animate": "^1.0.7",
-    "react-simple-maps": "^3.0.0",
     "zustand": "latest"
   },
   "devDependencies": {

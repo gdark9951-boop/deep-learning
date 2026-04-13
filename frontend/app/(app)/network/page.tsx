@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import { CyberBackground } from "@/components/CyberBackground";
 import { Button } from "@/components/ui/button";
 import { Network, ZoomIn, ZoomOut, Filter, Maximize2, RotateCcw, FlaskConical, Wifi } from "lucide-react";
-import {
-    NetworkMapViewport,
-    type NetworkMapViewportHandle,
-} from "@/components/NetworkMapViewport";
+
+// Disable SSR for react-force-graph-2d because it uses canvas/window APIs
+const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
 
 const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
 
@@ -31,16 +31,25 @@ const LEGEND = [
     { color: "#7A5FFF", label: "Unknown" },
 ];
 
-const NODES = [
-    { x: 50, y: 50, color: "#00F0FF", r: 7, label: "GW" },
-    { x: 25, y: 30, color: "#00FF9C", r: 4.5, label: "SV1" },
-    { x: 70, y: 25, color: "#00FF9C", r: 4.5, label: "SV2" },
-    { x: 20, y: 65, color: "#FF4D4D", r: 5, label: "PC1" },
-    { x: 75, y: 70, color: "#00FF9C", r: 4.5, label: "PC2" },
-    { x: 45, y: 78, color: "#7A5FFF", r: 4, label: "IOT" },
-    { x: 85, y: 45, color: "#00FF9C", r: 4.5, label: "SV3" },
-];
-const EDGES = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6]];
+const GRAPH_DATA = {
+    nodes: [
+        { id: "GW", color: "#00F0FF", val: 8, label: "GW" },
+        { id: "SV1", color: "#00FF9C", val: 5, label: "SV1" },
+        { id: "SV2", color: "#00FF9C", val: 5, label: "SV2" },
+        { id: "PC1", color: "#FF4D4D", val: 6, label: "PC1", infected: true },
+        { id: "PC2", color: "#00FF9C", val: 5, label: "PC2" },
+        { id: "IOT", color: "#7A5FFF", val: 4, label: "IOT" },
+        { id: "SV3", color: "#00FF9C", val: 5, label: "SV3" },
+    ],
+    links: [
+        { source: "GW", target: "SV1" },
+        { source: "GW", target: "SV2" },
+        { source: "GW", target: "PC1" },
+        { source: "GW", target: "PC2" },
+        { source: "GW", target: "IOT" },
+        { source: "GW", target: "SV3" },
+    ]
+};
 
 interface NetSummary {
     interfaces: { name: string; ip: string; up: boolean; speed_mbps: number; bytes_sent: number; bytes_recv: number }[];
@@ -56,9 +65,22 @@ function fmtBytes(b: number) {
 }
 
 export default function NetworkPage() {
-    const viewportRef = useRef<NetworkMapViewportHandle>(null);
+    const graphRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dims, setDims] = useState({ width: 0, height: 350 });
     const [summary, setSummary] = useState<NetSummary | null>(null);
 
+    // Track container width for responsive Graph
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const observer = new ResizeObserver((entries) => {
+            setDims({ width: entries[0].contentRect.width, height: 350 });
+        });
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, []);
+
+    // Polling API for network stats
     useEffect(() => {
         const fetchSummary = () =>
             fetch(`${API}/api/network/summary`)
@@ -68,6 +90,37 @@ export default function NetworkPage() {
         fetchSummary();
         const t = setInterval(fetchSummary, 4000);
         return () => clearInterval(t);
+    }, []);
+
+    // Graph interactions
+    const handleZoomIn = useCallback(() => {
+        if (graphRef.current) {
+            const currentZoom = graphRef.current.zoom();
+            graphRef.current.zoom(currentZoom * 1.5, 400);
+        }
+    }, []);
+
+    const handleZoomOut = useCallback(() => {
+        if (graphRef.current) {
+            const currentZoom = graphRef.current.zoom();
+            graphRef.current.zoom(currentZoom / 1.5, 400);
+        }
+    }, []);
+
+    const handleReset = useCallback(() => {
+        if (graphRef.current) {
+            graphRef.current.zoomToFit(400, 40);
+        }
+    }, []);
+
+    const handleFullscreen = useCallback(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        if (!document.fullscreenElement) {
+            el.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
     }, []);
 
     const activeIfaces = summary?.interfaces.filter(i => i.up) ?? [];
@@ -85,53 +138,91 @@ export default function NetworkPage() {
                     <div style={card}>
                         <div style={sectionHead}>
                             <Network size={15} color="#00F0FF" />
-                            خريطة الشبكة — مباشر
+                            خريطة الشبكة التفاعلية (فيزياء حية)
                         </div>
                         <div style={{ padding: "16px 18px" }}>
                             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                                 {[
-                                    { icon: ZoomIn, label: "Zoom In", action: () => viewportRef.current?.zoomIn() },
-                                    { icon: ZoomOut, label: "Zoom Out", action: () => viewportRef.current?.zoomOut() },
-                                    { icon: RotateCcw, label: "Reset", action: () => viewportRef.current?.reset() },
-                                    { icon: Maximize2, label: "Fullscreen", action: () => viewportRef.current?.toggleFullscreen() },
+                                    { icon: ZoomIn, label: "تكبير", action: handleZoomIn },
+                                    { icon: ZoomOut, label: "تصغير", action: handleZoomOut },
+                                    { icon: RotateCcw, label: "توسيط", action: handleReset },
+                                    { icon: Maximize2, label: "شاشة كاملة", action: handleFullscreen },
                                 ].map(({ icon: Icon, label, action }) => (
                                     <Button key={label} variant="outline" size="sm" onClick={action}
                                         style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.6)", fontSize: 11, height: 32, gap: 5 }}>
                                         <Icon size={13} /> {label}
                                     </Button>
                                 ))}
-                                <Button variant="outline" size="sm"
-                                    style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.6)", fontSize: 11, height: 32, gap: 5, opacity: 0.5, cursor: "default" }}>
-                                    <Filter size={13} /> Filter
-                                </Button>
                             </div>
 
-                            <NetworkMapViewport ref={viewportRef} height={300}>
-                                <svg viewBox="0 0 100 100" style={{ width: "100%", height: "100%", display: "block" }}>
-                                    {EDGES.map(([a, b], i) => (
-                                        <line key={i}
-                                            x1={NODES[a].x} y1={NODES[a].y}
-                                            x2={NODES[b].x} y2={NODES[b].y}
-                                            stroke={NODES[b].color === "#FF4D4D" ? "#FF4D4D" : "rgba(255,255,255,0.1)"}
-                                            strokeWidth={NODES[b].color === "#FF4D4D" ? "0.8" : "0.4"}
-                                            strokeDasharray={NODES[b].color === "#FF4D4D" ? "2 2" : "0"}
-                                            opacity={NODES[b].color === "#FF4D4D" ? 0.7 : 1}
-                                        />
-                                    ))}
-                                    {NODES.map((n, i) => (
-                                        <g key={i}>
-                                            <circle cx={n.x} cy={n.y} r={n.r + 3} fill={n.color + "15"} />
-                                            <circle cx={n.x} cy={n.y} r={n.r} fill={n.color + "30"} stroke={n.color} strokeWidth="0.8" />
-                                            <text x={n.x} y={n.y + n.r + 4} textAnchor="middle" fill={n.color} fontSize="2.8" fontWeight="bold">{n.label}</text>
-                                        </g>
-                                    ))}
-                                </svg>
+                            {/* Container for ForceGraph */}
+                            <div
+                                ref={containerRef}
+                                style={{
+                                    height: dims.height,
+                                    borderRadius: 12,
+                                    border: "1px solid rgba(255,255,255,0.06)",
+                                    background: "rgba(3,5,15,0.7)",
+                                    overflow: "hidden",
+                                    position: "relative"
+                                }}
+                            >
+                                {dims.width > 0 && (
+                                    <ForceGraph2D
+                                        ref={graphRef}
+                                        width={dims.width}
+                                        height={dims.height}
+                                        graphData={GRAPH_DATA}
+                                        backgroundColor="transparent"
+                                        nodeColor={(n: any) => n.color}
+                                        linkColor={(l: any) => l.target.color === "#FF4D4D" ? "#FF4D4D" : "rgba(255,255,255,0.15)"}
+                                        linkWidth={(l: any) => l.target.color === "#FF4D4D" ? 1.5 : 0.5}
+                                        linkLineDash={(l: any) => l.target.color === "#FF4D4D" ? [4, 2] : []}
+                                        linkDirectionalParticles={(l: any) => l.target.color === "#FF4D4D" ? 3 : 1}
+                                        linkDirectionalParticleSpeed={0.01}
+                                        linkDirectionalParticleWidth={(l: any) => l.target.color === "#FF4D4D" ? 3 : 1.5}
+                                        linkDirectionalParticleColor={(l: any) => l.target.color === "#FF4D4D" ? "#FF4D4D" : "#00F0FF"}
+                                        d3AlphaDecay={0.02} // Keeps the physics floating a bit longer
+                                        d3VelocityDecay={0.4}
+                                        nodeCanvasObject={(node: any, ctx: any, globalScale: number) => {
+                                            const label = node.label;
+                                            const fontSize = Math.max(4, 12 / globalScale);
+                                            ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+
+                                            // Draw outer glow/ring
+                                            ctx.beginPath();
+                                            ctx.arc(node.x, node.y, node.val + 2, 0, 2 * Math.PI);
+                                            ctx.fillStyle = `${node.color}30`;
+                                            ctx.fill();
+
+                                            // Draw inner solid circle
+                                            ctx.beginPath();
+                                            ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI);
+                                            ctx.fillStyle = `${node.color}85`;
+                                            ctx.fill();
+                                            ctx.strokeStyle = node.color;
+                                            ctx.lineWidth = 1.5 / globalScale;
+                                            ctx.stroke();
+
+                                            // Draw label text
+                                            ctx.textAlign = 'center';
+                                            ctx.textBaseline = 'middle';
+                                            ctx.fillStyle = node.color;
+                                            ctx.fillText(label, node.x, node.y + node.val + 6 + fontSize / 2);
+                                        }}
+                                        onEngineStop={() => {
+                                            // Automatically fit graph to view once simulation settles
+                                            graphRef.current?.zoomToFit(400, 40);
+                                        }}
+                                    />
+                                )}
                                 <div style={{
-                                    position: "absolute", left: `${NODES[3].x}%`, top: `${NODES[3].y}%`,
-                                    transform: "translate(-50%,-50%)", width: 24, height: 24, borderRadius: "50%",
-                                    border: "1.5px solid #FF4D4D", animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite", opacity: 0.6,
-                                }} />
-                            </NetworkMapViewport>
+                                    position: "absolute", bottom: 8, left: 12,
+                                    fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "monospace", pointerEvents: "none"
+                                }}>
+                                    استخدم الماوس للسحب والتكبير بمرونة (Smooth Pan/Zoom)
+                                </div>
+                            </div>
                         </div>
                     </div>
 
