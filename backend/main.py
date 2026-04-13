@@ -35,6 +35,9 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 # ─── Routers ──────────────────────────────────────────────────────────────────
+import sys
+import os
+sys.path.append(os.path.dirname(__file__))
 from routers import history, metrics, network, explain, prediction, live
 
 # ─── Paths ───────────────────────────────────────────────────────────────────
@@ -249,7 +252,7 @@ def train_models() -> None:
 
     clf_defs = {
         "hybrid": RandomForestClassifier(
-            n_estimators=150, max_depth=10, random_state=42, n_jobs=-1
+            n_estimators=150, max_depth=10, random_state=42, n_jobs=1
         ),
         "cnn": GradientBoostingClassifier(
             n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42
