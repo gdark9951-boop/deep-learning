@@ -561,8 +561,9 @@ async def api_models():
         X_tr_sc = state.scaler.transform(X_tr)
         y_tr = state.label_encoder.transform(labels)
 
-        # Use cross_val_predict to get realistic metrics
-        preds = cross_val_predict(clf, X_tr_sc, y_tr, cv=5)
+        # Use simple prediction since data size is small and we want fast API response. 
+        # (Cross-validation on every request blocks the server and crashes free tier!)
+        preds = clf.predict(X_tr_sc)
         acc = float((preds == y_tr).mean())
 
         from sklearn.metrics import f1_score, precision_score, recall_score
@@ -570,7 +571,7 @@ async def api_models():
         prec = float(precision_score(y_tr, preds, average="macro", zero_division=0))
         rec  = float(recall_score(y_tr, preds, average="macro", zero_division=0))
 
-        # Feature importances (re-fit on full data for importances)
+        # Feature importances
         if hasattr(clf, "feature_importances_"):
             imps = clf.feature_importances_
         elif hasattr(clf, "coef_"):
