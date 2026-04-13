@@ -22,7 +22,7 @@ interface PredictResult {
     model: string;
     label: string;
     confidence: number;   // 0–1
-    risk: "HIGH" | "MEDIUM" | "LOW";
+    risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
     top_features: FeatureImpact[];
     records: number;
 }
